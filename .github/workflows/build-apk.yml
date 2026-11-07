@@ -30,45 +30,34 @@ jobs:
           mkdir -p build-source
           ZIP_FILE=$(find . -maxdepth 1 -iname '*.zip' | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
-            echo "No ZIP file found in repository root."
+            echo "No ZIP file found."
             exit 1
           fi
           unzip -q "$ZIP_FILE" -d build-source
-          echo "Extracted: $ZIP_FILE"
 
       - name: Find Android project
         run: |
-          SETTINGS=$(find build-source -type f \
-            \( -name settings.gradle -o -name settings.gradle.kts \) \
-            | head -n 1)
+          SETTINGS=$(find build-source -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
           if [ -z "$SETTINGS" ]; then
             echo "Android Gradle project not found in ZIP."
             exit 1
           fi
           echo "ANDROID_DIR=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
 
-      - name: Install Gradle
+      - name: Install Gradle 9.3.1
         run: |
-          if [ ! -f "$ANDROID_DIR/gradlew" ]; then
-            wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
-            unzip -q gradle-8.9-bin.zip
-            echo "$GITHUB_WORKSPACE/gradle-8.9/bin" >> "$GITHUB_PATH"
-          fi
+          wget -q https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
+          unzip -q gradle-9.3.1-bin.zip
+          echo "$GITHUB_WORKSPACE/gradle-9.3.1/bin" >> "$GITHUB_PATH"
 
       - name: Build APK
         run: |
           cd "$ANDROID_DIR"
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew --no-daemon assembleDebug
-          else
-            gradle --no-daemon assembleDebug
-          fi
+          gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NEXORA-HISAB-APK
-          path: |
-            ${{ env.ANDROID_DIR }}/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
