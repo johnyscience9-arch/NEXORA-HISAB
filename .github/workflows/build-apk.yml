@@ -35,6 +35,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p build-source
+
           ZIP_FILE=$(find . -maxdepth 1 -type f -name '*.zip' | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
@@ -52,14 +53,32 @@ jobs:
             | head -n 1)
 
           if [ -z "$SETTINGS" ]; then
-            echo "ERROR: Android settings.gradle not found!"
+            echo "ERROR: Android project not found!"
             exit 1
           fi
 
           ANDROID_DIR=$(dirname "$SETTINGS")
           echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
 
-          echo "Android project: $ANDROID_DIR"
+          echo "Project found: $ANDROID_DIR"
+
+      - name: Generate Debug Keystore
+        shell: bash
+        run: |
+          if [ ! -f "$ANDROID_DIR/debug.keystore" ]; then
+            keytool -genkeypair \
+              -v \
+              -keystore "$ANDROID_DIR/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          ls -l "$ANDROID_DIR/debug.keystore"
 
       - name: Update Gradle Wrapper
         shell: bash
